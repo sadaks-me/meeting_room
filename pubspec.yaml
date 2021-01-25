@@ -1,0 +1,132 @@
+name: archo
+description: A Flutter architecture template.
+
+publish_to: 'https://github.com/sad1996/archo'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^0.1.3
+  get: ^3.2.2
+  provider: ^4.3.1
+  connectivity: ^0.4.9
+  dio: ^3.0.9
+  dio_http_cache: ^0.2.7
+  intl: ^0.16.1
+  hive: ^1.4.1+1
+  hive_flutter: ^0.3.0+2
+  dio_retry: ^0.1.9-beta
+  url_launcher: ^5.5.0
+  package_info: ^0.4.1
+  google_fonts: ^1.1.0
+  shimmer: ^1.1.1
+  lazy_loading_list: ^1.0.0+1
+  build_context: ^2.0.2
+
+dependency_overrides:
+  path: 1.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/2.0x/
+    - assets/images/3.0x/
+    - assets/icons/
+    - assets/icons/2.0x/
+    - assets/icons/3.0x/
+    - assets/fonts/product_sans/
+
+  fonts:
+    - family: PublicSans
+      fonts:
+        - asset: assets/fonts/public_sans/PublicSans-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/public_sans/PublicSans-ThinItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/public_sans/PublicSans-ExtraLightItalic.ttf
+          weight: 200
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-Light.ttf
+          weight: 300
+        - asset: assets/fonts/public_sans/PublicSans-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/public_sans/PublicSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/public_sans/PublicSans-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-Black.ttf
+          weight: 600
+        - asset: assets/fonts/public_sans/PublicSans-BlackItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-SemiBold.ttf
+          weight: 700
+        - asset: assets/fonts/public_sans/PublicSans-SemiBoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-Bold.ttf
+          weight: 800
+        - asset: assets/fonts/public_sans/PublicSans-BoldItalic.ttf
+          weight: 800
+          style: italic
+        - asset: assets/fonts/public_sans/PublicSans-ExtraBold.ttf
+          weight: 900
+        - asset: assets/fonts/public_sans/PublicSans-ExtraBoldItalic.ttf
+          weight: 900
+          style: italic
+
+    - family: ProductSans
+      fonts:
+        - asset: assets/fonts/product_sans/ProductSans-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/product_sans/ProductSans-ThinItalic.ttf
+          weight: 100
+          style: italic
+        - asset: assets/fonts/product_sans/ProductSans-Light.ttf
+          weight: 300
+        - asset: assets/fonts/product_sans/ProductSans-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/product_sans/ProductSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/product_sans/ProductSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/product_sans/ProductSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/product_sans/ProductSans-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/product_sans/ProductSans-Black.ttf
+          weight: 600
+        - asset: assets/fonts/product_sans/ProductSans-BlackItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/product_sans/ProductSans-Bold.ttf
+          weight: 900
+        - asset: assets/fonts/product_sans/ProductSans-BoldItalic.ttf
+          weight: 900
+          style: italic
