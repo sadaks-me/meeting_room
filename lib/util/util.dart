@@ -1,25 +1,14 @@
-import 'dart:io';
 import 'dart:ui';
 
-import 'package:archo/controller/dio_retry.dart';
-import 'package:connectivity/connectivity.dart';
-import 'package:dio/dio.dart';
-import 'package:dio_http_cache/dio_http_cache.dart';
-import 'package:dio_retry/dio_retry.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:meeting_room/util/essentials.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:archo/controller/api.dart';
-
-import 'route_builder.dart';
-
-Dio dio = new Dio();
-DioCacheManager dioCacheManager =
-    DioCacheManager(CacheConfig(baseUrl: Api.baseUrl));
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class Util {
   static Future initializeApp() async {
@@ -27,17 +16,20 @@ class Util {
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
     Provider.debugCheckInvalidValueType = null;
+    tz.initializeTimeZones();
+
     // "Hive" a better & faster storage than shared_preference
     Hive.init((await getApplicationDocumentsDirectory()).path);
+    // Setting up the boxes
+    var box = await Hive.openBox('locale_box');
+    if (!box.containsKey("timezone_name"))
+      tz.setLocalLocation(tz.getLocation(defaultTimeZone));
     await Hive.openBox('app_box');
-    await Hive.openBox('theme_box');
-    dioCacheManager.clearExpired();
+    await Hive.openBox('meeting_room_box');
+    await Hive.openBox('meeting_slot_box');
   }
 
-  static ThemeData get appTheme =>
-      Hive.box("theme_box").get("theme", defaultValue: "light") == "light"
-          ? lightTheme
-          : darkTheme;
+  static ThemeData get appTheme => lightTheme;
 
   //Customize your theme here
   static ThemeData darkTheme = ThemeData(
@@ -47,8 +39,7 @@ class Util {
       primaryColor: Colors.black,
       accentColor: Colors.blue,
       backgroundColor: Colors.blueGrey,
-      scaffoldBackgroundColor: Colors.blueGrey.shade900,
-      fontFamily: "PublicSans");
+      scaffoldBackgroundColor: Colors.blueGrey.shade900);
 
   static ThemeData lightTheme = ThemeData(
       brightness: Brightness.light,
@@ -57,43 +48,115 @@ class Util {
       primaryColor: Colors.blueGrey.shade900,
       accentColor: Colors.blue,
       backgroundColor: Colors.white,
-      scaffoldBackgroundColor: Colors.white,
-      fontFamily: "PublicSans");
+      scaffoldBackgroundColor: Colors.white);
 
-  static String capitalize(String name) {
-    assert(name != null && name.isNotEmpty);
-    return name.substring(0, 1).toUpperCase() + name.substring(1);
-  }
+  static showToast(String message,
+          {String title,
+          bool instantInit = true,
+          Color backgroundColor,
+          Color textColor,
+          Duration duration,
+          Widget icon,
+          bool shouldIconPulse,
+          SnackPosition position = SnackPosition.BOTTOM}) =>
+      Get.snackbar(title, message,
+          backgroundColor: backgroundColor ?? Colors.black,
+          icon: icon,
+          shouldIconPulse: shouldIconPulse,
+          snackPosition: position,
+          duration: duration,
+          instantInit: instantInit,
+          margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          colorText: textColor ?? Colors.white);
 
-  static platformRoute({@required Widget page, bool isDialog = false}) {
-    if (Platform.isIOS || isDialog)
-      return MaterialPageRoute(
-          builder: (context) => page, fullscreenDialog: isDialog);
-    else
-      return SlideLeftRoute(
-        page: page,
-      );
-  }
-
-  static initDio(BuildContext context) {
-    dio.interceptors.addAll([
-      dioCacheManager.interceptor,
-      RetryOnConnectionChangeInterceptor(
-        context,
-        requestRetrier: DioConnectivityRequestRetry(
-          dio: dio,
-          connectivity: Connectivity(),
-        ),
-      ),
-      RetryInterceptor(
-          options: RetryOptions(
-            retries: 3,
-            retryInterval: const Duration(seconds: 5),
-            retryEvaluator: (error) =>
-                error.type != DioErrorType.CANCEL &&
-                error.type != DioErrorType.RESPONSE,
+  static showDialog(
+          {String title,
+          String message = "",
+          String possitiveText = "Yes",
+          String negativeText = "Cancel",
+          bool instantInit = true,
+          Color backgroundColor = Colors.black,
+          Color textColor = Colors.white,
+          Duration duration,
+          bool barrierDismissible = true,
+          SnackPosition position = SnackPosition.BOTTOM,
+          @required VoidCallback onDonePressed}) =>
+      Get.dialog(AlertDialog(
+        contentPadding: EdgeInsets.all(0),
+        content: WillPopScope(
+          onWillPop: () => Future.value(barrierDismissible),
+          child: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                if (nonNullNotEmpty(title))
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 26),
+                    child: Text(title,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        )),
+                  ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 25,
+                ),
+                Divider(
+                  height: 0.5,
+                ),
+                Row(
+                  children: [
+                    if (barrierDismissible) ...{
+                      Expanded(
+                        child: FlatButton(
+                            child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Text(
+                                negativeText,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            onPressed: () => Get.back()),
+                      ),
+                      Container(
+                        height: 50,
+                        color: Util.appTheme.dividerColor,
+                        width: 0.5,
+                      )
+                    },
+                    Expanded(
+                      child: FlatButton(
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Text(
+                            possitiveText,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Util.appTheme.accentColor),
+                          ),
+                        ),
+                        onPressed: onDonePressed,
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
           ),
-          dio: dio)
-    ]);
-  }
+        ),
+      ));
 }

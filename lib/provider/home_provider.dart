@@ -1,40 +1,48 @@
-import 'package:archo/controller/api.dart';
-import 'package:archo/model/user.dart';
-import 'package:archo/util/essentials.dart';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:meeting_room/model/slot.dart';
+import 'package:meeting_room/util/essentials.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class HomeProvider with ChangeNotifier {
-  HomeProvider();
-
-  List<User> users;
-  Meta meta;
-  int page;
-  bool isLoading = false;
-  bool isLoadingMore = false;
-
-  init() async {
-    await getUsers(forceRefresh: true);
+  HomeProvider() {
+    selectedDate = tz.TZDateTime.now(getTimeZoneLoc);
+    getMeetingSlots();
   }
 
-  getUsers({bool forceRefresh = false}) async {
-    if (forceRefresh) {
-      page = 0;
-      isLoading = true;
-    } else
-      isLoadingMore = true;
+  List<Slot> slots = [];
+  DateTime selectedDate;
+
+  getMeetingSlots() async {
+    Map<dynamic, dynamic> raw = meetingSlotBox.toMap();
+    slots = raw.values
+        .map((packJson) => Slot.fromJson(jsonDecode(packJson)))
+        //Filtering selected day's slots
+        .where((slot) => isSameDay(
+            tz.TZDateTime.fromMillisecondsSinceEpoch(
+                getTimeZoneLoc, int.parse(slot.id)),
+            selectedDate))
+        .toList()
+          //Sorting the slots
+          ..sort((a, b) => b.priority.id.compareTo(a.priority.id)
+              // + toToDDouble(a.timeRange.start)
+              //     .compareTo(toToDDouble(b.timeRange.start),
+              );
     notifyListeners();
-    await Api.getApiExample(page: page, forceRefresh: forceRefresh)
-        .then((response) {
-      if (response != null) {
-        meta = Meta.fromJson(response['_meta']);
-        users = response['result']
-            .map<User>((item) => User.fromJson(item))
-            .toList();
-        page++;
-      }
-      isLoading = false;
-      isLoadingMore = false;
-      notifyListeners();
-    });
+  }
+
+  Future selectDate(BuildContext context) async {
+    var now = tz.TZDateTime.now(getTimeZoneLoc);
+    final DateTime picked = await showDatePicker(
+        context: context,
+        initialDate: selectedDate,
+        initialDatePickerMode: DatePickerMode.day,
+        firstDate: now.subtract(Duration(days: 30)),
+        lastDate: now.add(Duration(days: 30)));
+    if (picked != null) {
+      selectedDate = tz.TZDateTime.from(picked, getTimeZoneLoc);
+      getMeetingSlots();
+    }
   }
 }

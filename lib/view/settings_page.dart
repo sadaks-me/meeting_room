@@ -1,24 +1,33 @@
-import 'package:archo/model/user.dart';
-import 'package:archo/provider/home_provider.dart';
-import 'package:archo/util/essentials.dart';
-import 'package:archo/view/colors_page.dart';
-import 'package:archo/view/typography_page.dart';
-import 'package:archo/widget/component/ui_components.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:build_context/build_context.dart';
-import 'package:provider/provider.dart';
+import 'package:meeting_room/util/essentials.dart';
+import 'package:meeting_room/util/time_range/time_range.dart';
+import 'package:meeting_room/view/meeting_rooms_page.dart';
+import 'package:meeting_room/widget/components.dart';
+
+import '../util/essentials.dart';
+import '../util/util.dart';
+import 'timezones_page.dart';
 
 class SettingsPage extends StatelessWidget {
   static const String routeName = "SettingsPage";
 
   @override
   Widget build(context) {
-    var homeProvider = Provider.of<HomeProvider>(context, listen: false);
-    print('Settings Executed');
+    Color primary = Util.appTheme.primaryColor;
+    final defaultDay = TimeRangeResult(
+      TimeOfDay(hour: 0, minute: 0),
+      TimeOfDay(hour: 24, minute: 00),
+    );
+    final labelStyle = TextStyle(
+      fontSize: 15,
+      color: primary,
+      fontWeight: FontWeight.w600,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -28,103 +37,108 @@ class SettingsPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            ListTile(
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Light Mode"),
-                    SizedBox(
-                      width: 20,
-                    ),
-                    themeSwitcher,
-                    SizedBox(
-                      width: 20,
-                    ),
-                    Text("Dark Mode"),
-                  ],
-                )),
+            ValueListenableBuilder<Box>(
+                valueListenable: appBox.listenable(),
+                builder: (context, box, child) {
+                  var start = getTimeFromMinutes(box.get("office_timing_start",
+                      defaultValue: defaultOfficeTiming.start.inMinutes()));
+                  var end = getTimeFromMinutes(box.get("office_timing_end",
+                      defaultValue: defaultOfficeTiming.end.inMinutes()));
+
+                  TimeRangeResult officeTiming = TimeRangeResult(start, end);
+
+                  return ExpansionTile(
+                      tilePadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Office Timing'),
+                          Text(
+                            TimeRangeExt(officeTiming).formatRange,
+                            style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16, bottom: 20),
+                          child: TimeRange(
+                            key: ValueKey(routeName),
+                            fromTitle: Text(
+                              'Day Start',
+                              style: labelStyle,
+                            ),
+                            toTitle: Text(
+                              'Day End',
+                              style: labelStyle,
+                            ),
+                            textStyle: TextStyle(
+                                fontSize: 16,
+                                color: primary,
+                                fontWeight: FontWeight.w700),
+                            activeTextStyle: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700),
+                            titlePadding: 20,
+                            borderColor: primary,
+                            activeBorderColor: primary,
+                            backgroundColor: Colors.grey.shade100,
+                            activeBackgroundColor: primary,
+                            firstTime: defaultDay.start,
+                            lastTime: defaultDay.end,
+                            initialRange: officeTiming,
+                            timeStep: 30,
+                            timeBlock: 30,
+                            onRangeCompleted: (range) {
+                              if (range != null) {
+                                TimeRangeExt(range).printRange;
+                                box.put("office_timing_start",
+                                    range.start.inMinutes());
+                                box.put(
+                                    "office_timing_end", range.end.inMinutes());
+                              }
+                            },
+                          ),
+                        ),
+                      ]);
+                }),
             Divider(
               height: 0.5,
             ),
-            ValueListenableBuilder<Box>(
-              valueListenable: Hive.box('app_box').listenable(),
-              builder: (context, box, child) => ExpansionTile(
-                tilePadding: EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-                title: Text('Show Toast'),
+            ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              title: Text("Notification Alert"),
+              trailing: notificationSwitcher,
+            ),
+            Divider(
+              height: 0.5,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              title: Text("Use 24 Hour Format"),
+              trailing: alwaysUse24hrsFormatSwitcher,
+            ),
+            Divider(
+              height: 0.5,
+            ),
+            ListTile(
+              onTap: () => Get.toNamed(TimezonesPage.routeName),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    margin: EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'With Title',
-                                      style: context.textTheme.caption,
-                                    ),
-                                    SizedBox(
-                                      width: 10,
-                                    ),
-                                    CupertinoSwitch(
-                                        value: box.get("show_title",
-                                            defaultValue: false),
-                                        onChanged: (value) =>
-                                            box.put("show_title", value)),
-                                  ],
-                                ),
-                              ),
-                              Flexible(
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'With Icon',
-                                      style: context.textTheme.caption,
-                                    ),
-                                    SizedBox(
-                                      width: 10,
-                                    ),
-                                    CupertinoSwitch(
-                                        value: box.get("show_icon",
-                                            defaultValue: false),
-                                        onChanged: (value) =>
-                                            box.put("show_icon", value)),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: context.theme.accentColor),
-                          child: IconButton(
-                            onPressed: () {
-                              showToast(
-                                "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-                                title:
-                                    box.get("show_title", defaultValue: false)
-                                        ? "Title goes here"
-                                        : null,
-                                icon: box.get("show_icon", defaultValue: false)
-                                    ? Icon(
-                                        Icons.person,
-                                        color: context.theme.accentColor,
-                                      )
-                                    : null,
-                              );
-                            },
-                            icon: Icon(Icons.arrow_forward),
-                          ),
-                        )
-                      ],
-                    ),
+                  Text('Time Zone'),
+                  Text(
+                    localeBox.get("timezone_name",
+                            defaultValue: defaultTimeZone) +
+                        " (${getTimeZoneLoc.currentTimeZone.abbr})",
+                    style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.bold),
                   )
                 ],
               ),
@@ -133,43 +147,10 @@ class SettingsPage extends StatelessWidget {
               height: 0.5,
             ),
             ListTile(
-                onTap: () {
-                  showAppDialog(
-                    title: "Title goes here",
-                    message:
-                        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
-                  );
-                },
+                onTap: () => Get.toNamed(MeetingRoomsPage.routeName),
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                title: Text('Show Dialog')),
-            Divider(
-              height: 0.5,
-            ),
-            ListTile(
-                onTap: () async {
-                  await homeProvider.init();
-                  showToast("Users updated");
-                },
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                title: Text('Trigger User Api from Home')),
-            Divider(
-              height: 0.5,
-            ),
-            ListTile(
-                onTap: () => Get.toNamed(TypographyPage.routeName),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                title: Text('Typography')),
-            Divider(
-              height: 0.5,
-            ),
-            ListTile(
-                onTap: () => Get.toNamed(ColorsPage.routeName),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                title: Text('Theme Colors')),
+                title: Text('Meeting Rooms')),
             Divider(
               height: 0.5,
             ),
